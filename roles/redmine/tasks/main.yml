@@ -1,0 +1,149 @@
+# https://www.redmine.org/projects/redmine/wiki/RedmineInstall
+# 前準備
+- name: ユーザ'redmine'の作成
+  user:
+    name: redmine
+
+- name: nokogiri, RMagickのコンパイルに必要なライブラリをインストール
+  yum:
+    name:
+      - gcc
+      - ImageMagick-devel
+      - libxml2-devel
+      - patch
+
+# Step 1 - Redmine application
+- name: Redmine 3.4.6のダウンロード
+  get_url:
+    url: https://www.redmine.org/releases/redmine-3.4.6.tar.gz
+    dest: /usr/local/src/redmine-3.4.6.tar.gz
+    checksum: md5:5f4993446ecf25782f469763c0d32ea1
+
+- name: Redmine 3.4.6の展開
+  unarchive:
+    src: /usr/local/src/redmine-3.4.6.tar.gz
+    dest: /opt/
+    extra_opts: "--transform=s/^redmine-3.4.6/redmine/"
+    remote_src: yes
+    creates: /opt/redmine
+
+# TODO: 以下の警告に対処
+#  [WARNING]: Module remote_tmp /var/lib/pgsql/.ansible/tmp did not exist and was
+# created with a mode of 0700, this may cause issues when running as another
+# user. To avoid this, create the remote_tmp dir with the correct permissions
+# manually
+
+# Step 2 - Create an empty database and accompanying user
+- name: ロール'redmine'の作成
+  postgresql_user:
+    name: redmine
+    password: "{{ db_password }}"
+    role_attr_flags: LOGIN,NOINHERIT
+  become_user: postgres
+
+- name: データベース'redmine'の作成
+  postgresql_db:
+    name: redmine
+    encoding: UTF-8
+    owner: redmine
+    template: template0
+  become_user: postgres
+
+# Step 3 - Database connection configuration
+- name: database.ymlのコピー
+  template:
+    src: database.yml.j2
+    dest: /opt/redmine/config/database.yml
+
+# Step 4 - Dependencies installation
+- name: bundlerのインストール
+  gem:
+    name: bundler
+    user_install: no
+    state: present
+
+- name: rh-ruby24のbundleを呼び出すスクリプトを/usr/bin/bundleとして配置
+  copy:
+    src: bundle.sh
+    dest: /usr/bin/bundle
+    mode: 0755
+
+- name: bundle install --without development test
+  shell: bundle install --without development test
+  args:
+    chdir: /opt/redmine
+    creates: /opt/redmine/Gemfile.lock
+
+# Step 5 - Session store secret generation
+- name: bundle exec rake generate_secret_token
+  shell: bundle exec rake generate_secret_token
+  args:
+    chdir: /opt/redmine
+    creates: /opt/redmine/config/initializers/secret_token.rb
+
+# Step 6 - Database schema objects creation
+- name: bundle exec rake db:migrate
+  shell: bundle exec rake db:migrate
+  args:
+    chdir: /opt/redmine
+    creates: /opt/redmine/db/schema.rb
+  environment:
+    RAILS_ENV: production
+
+# Step 7 - Database default data set
+- name: bundle exec rake redmine:load_default_data
+  shell: bundle exec rake redmine:load_default_data && touch .ansible_load_default_data
+  args:
+    chdir: /opt/redmine
+    creates: /opt/redmine/.ansible_load_default_data
+  environment:
+    RAILS_ENV: production
+    REDMINE_LANG: ja
+
+# Step 8 - File system permissions
+- name: mkdir -p /opt/redmine/tmp
+  file:
+    state: directory
+    path: /opt/redmine/tmp
+
+- name: mkdir -p /opt/redmine/tmp/pdf
+  file:
+    state: directory
+    path: /opt/redmine/tmp/pdf
+
+- name: mkdir -p /opt/redmine/public/plugin_assets
+  file:
+    state: directory
+    path: /opt/redmine/public/plugin_assets
+
+- name: chown -R redmine:redmine /opt/redmine/files
+  file:
+    state: directory
+    path: /opt/redmine/files
+    owner: redmine
+    group: redmine
+    mode: 0755
+
+- name: chown -R redmine:redmine /opt/redmine/log
+  file:
+    state: directory
+    path: /opt/redmine/log
+    owner: redmine
+    group: redmine
+    mode: 0755
+
+- name: chown -R redmine:redmine /opt/redmine/tmp
+  file:
+    state: directory
+    path: /opt/redmine/tmp
+    owner: redmine
+    group: redmine
+    mode: 0755
+
+- name: chown -R redmine:redmine /opt/redmine/public/plugin_assets
+  file:
+    state: directory
+    path: /opt/redmine/public/plugin_assets
+    owner: redmine
+    group: redmine
+    mode: 0755

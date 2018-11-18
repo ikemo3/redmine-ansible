@@ -1,0 +1,35 @@
+- name: PostgreSQLのインストール
+  yum:
+    state: installed
+    name:
+      - postgresql
+      - postgresql-server
+      - postgresql-devel # bundle installで必要なため
+
+- name: python-psycopg2のインストール(postgresql_*モジュールで必要)
+  yum:
+    name: python-psycopg2
+    state: installed
+
+- name: データベース初期化
+  shell: /bin/postgresql-setup initdb
+  args:
+    creates:
+      /var/lib/pgsql/data/pg_hba.conf
+
+- name: ローカル(Unixドメインソケット)からの認証をmd5に変更
+  lineinfile:
+    path: /var/lib/pgsql/data/pg_hba.conf
+    regexp: '^local\s+all\s+all\s+\w+$'
+    #      TYPE    DATABASE        USER            ADDRESS                 METHOD
+    line: "local   all             all                                     md5"
+
+- name: postgresユーザのみident認証に変更
+  lineinfile:
+    path: /var/lib/pgsql/data/pg_hba.conf
+    #      TYPE    DATABASE        USER            ADDRESS                 METHOD
+    line: "local   all             postgres                                ident"
+    insertbefore: '^local\s+all\s+all.*$'
+
+- name: PostgreSQLの起動
+  service: name=postgresql state=started

@@ -1,0 +1,35 @@
+- name: 標準のRubyは使わない
+  yum:
+    name: ruby
+    state: absent
+
+- name: The Software Collections(SCL)リポジトリを追加
+  yum:
+    name: centos-release-scl
+    state: installed
+
+- name: Ruby 2.4をインストール
+  yum:
+    name:
+      - rh-ruby24
+      - rh-ruby24-ruby-devel
+    state: installed
+
+- name: rh-ruby24を優先するように/etc/profile.d/ruby.shを追加
+  copy:
+    src: profile.sh
+    dest: /etc/profile.d/ruby.sh
+
+# "Failed to find required executable"を避けるために
+# /usr/bin/ruby, /usr/bin/gemをスクリプトとして配置
+- name: rh-ruby24のrubyを呼び出すスクリプトを/usr/bin/rubyとして配置
+  copy:
+    src: ruby.sh
+    dest: /usr/bin/ruby
+    mode: 0755
+
+- name: rh-ruby24のgemを呼び出すスクリプトを/usr/bin/gemとして配置
+  copy:
+    src: gem.sh
+    dest: /usr/bin/gem
+    mode: 0755

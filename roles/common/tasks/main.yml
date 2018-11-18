@@ -1,0 +1,6 @@
+- name: パッケージをすべて最新に更新
+  yum: name=* state=latest
+
+- name: タイムゾーンをJSTに設定
+  timezone: name=Asia/Tokyo
+  notify: restart crond
