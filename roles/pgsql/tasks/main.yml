@@ -11,8 +11,11 @@
     name: python-psycopg2
     state: installed
 
+# デフォルトでrunuserが入らないため
 - name: データベース初期化
   shell: /bin/postgresql-setup initdb
+  environment:
+    PATH: "/usr/sbin:{{ ansible_env.PATH }}"
   args:
     creates:
       /var/lib/pgsql/data/pg_hba.conf

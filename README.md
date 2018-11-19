@@ -25,8 +25,9 @@ Ansibleによるプロビジョニングが完了後、以下のようにして�
 
 ```sh
 vagrant ssh
+sudo su -
 cd /opt/redmine
-sudo bundle exec rails server webrick -e production --bind=0.0.0.0
+bundle exec rails server webrick -e production --bind=0.0.0.0
 ```
 
 http://localhost:3000/ にアクセスすると、Redmineの画面が表示されます。

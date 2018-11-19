@@ -15,21 +15,15 @@
       - rh-ruby24-ruby-devel
     state: installed
 
+- name: pam_env.confにPATHの設定を追加
+  blockinfile:
+    path: /etc/security/pam_env.conf
+    block: |
+      PATH DEFAULT=/usr/local/bin:/usr/bin:/opt/rh/rh-ruby24/root/usr/local/bin:/opt/rh/rh-ruby24/root/usr/bin
+      LD_LIBRARY_PATH DEFAULT=/opt/rh/rh-ruby24/root/usr/local/lib64:/opt/rh/rh-ruby24/root/usr/lib64
+      PKG_CONFIG_PATH DEFAULT=/opt/rh/rh-ruby24/root/usr/local/lib64/pkgconfig:/opt/rh/rh-ruby24/root/usr/lib64/pkgconfig
+
 - name: rh-ruby24を優先するように/etc/profile.d/ruby.shを追加
   copy:
     src: profile.sh
     dest: /etc/profile.d/ruby.sh
-
-# "Failed to find required executable"を避けるために
-# /usr/bin/ruby, /usr/bin/gemをスクリプトとして配置
-- name: rh-ruby24のrubyを呼び出すスクリプトを/usr/bin/rubyとして配置
-  copy:
-    src: ruby.sh
-    dest: /usr/bin/ruby
-    mode: 0755
-
-- name: rh-ruby24のgemを呼び出すスクリプトを/usr/bin/gemとして配置
-  copy:
-    src: gem.sh
-    dest: /usr/bin/gem
-    mode: 0755
