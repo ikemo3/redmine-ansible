@@ -4,4 +4,5 @@
     - { role: ruby, tags: ruby }
     - { role: pgsql, tags: pgsql }
     - { role: redmine, tags: redmine }
+    - { role: apache, tags: apache }
   become: yes
